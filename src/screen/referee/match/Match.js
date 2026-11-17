@@ -11,6 +11,14 @@ import toast from "react-hot-toast";
 import { TextField } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Dialog, DialogActions, DialogContent, DialogTitle, Button } from "@mui/material";
+import {
+    DeclareOutcomeDialog, OutcomeTag, getMatchOutcome, isDecidedWithoutPlay, useDeclarableOutcomes
+} from "@/components/matchOutcome";
+
+const teamLabel = (team) => {
+    const players = (team?.players || []).map((p) => `${p.first_name} ${p.last_name || ''}`.trim()).join(' & ');
+    return players ? `${team?.name || team?.team_id} (${players})` : (team?.name || team?.team_id);
+};
 
 const MatchScreen = ({ tournamentId, matchId }) => {
     const [scoreData, setScoreData] = useState(null);
@@ -18,6 +26,8 @@ const MatchScreen = ({ tournamentId, matchId }) => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [matchStatus, setMatchStatus] = useState(null);
+    const [declaringOutcome, setDeclaringOutcome] = useState(null);
+    const declarableOutcomes = useDeclarableOutcomes();
     const router = useRouter();
 
     const getScores = async () => {
@@ -198,6 +208,24 @@ const MatchScreen = ({ tournamentId, matchId }) => {
         router.push(`/referee/${tournamentId}/matches`);
     };
 
+    const openDeclareOutcome = (outcome) => {
+        setShowStatusModal(false);
+        setDeclaringOutcome(outcome);
+    };
+
+    const handleOutcomeDeclared = (resp) => {
+        setScoreData(prev => ({
+            ...prev,
+            status: resp.status,
+            is_final: resp.is_final,
+            winner_team_id: resp.winner_team_id,
+            outcome: resp.outcome,
+            team1: { ...prev.team1, score: resp.team1_score },
+            team2: { ...prev.team2, score: resp.team2_score },
+        }));
+        setMatchStatus(resp.status);
+    };
+
     if (loading) {
         return <div className={stl.loading}>Loading match details...</div>;
     }
@@ -205,6 +233,11 @@ const MatchScreen = ({ tournamentId, matchId }) => {
     if (!scoreData) {
         return <div className={stl.error}>No match data available</div>;
     }
+
+    const decidedWithoutPlay = isDecidedWithoutPlay(scoreData);
+    const outcome = getMatchOutcome(scoreData);
+    const winnerTeam = [scoreData.team1, scoreData.team2].find(t => t?.team_id === scoreData.winner_team_id);
+    const canDeclareOutcome = matchStatus !== 'completed' && !scoreData.is_final;
 
     return (
         <div className={stl.container}>
@@ -230,8 +263,25 @@ const MatchScreen = ({ tournamentId, matchId }) => {
                     <span className={stl.label}>Match ID:</span>
                     <span className={stl.value}>{matchId}</span>
                 </div>
+                {decidedWithoutPlay && (
+                    <div className={stl.infoItem}>
+                        <span className={stl.label}>Result:</span>
+                        <OutcomeTag match={scoreData} />
+                    </div>
+                )}
             </div>
 
+            {decidedWithoutPlay ? (
+                <div className={stl.scoreForm} style={{ textAlign: 'center' }}>
+                    <h3 style={{ margin: '0 0 8px' }}>
+                        {winnerTeam ? `${teamLabel(winnerTeam)} won by ${outcome.label.toLowerCase()}` : outcome.label}
+                    </h3>
+                    {outcome.reason && <p style={{ margin: '0 0 8px' }}>Reason: {outcome.reason}</p>}
+                    <p style={{ margin: 0, color: '#666' }}>
+                        No games were played, so no scores are recorded for this match.
+                    </p>
+                </div>
+            ) : (
             <form onSubmit={formik.handleSubmit} className={stl.scoreForm}>
                 <div className={stl.teams}>
                     <TeamCard
@@ -258,8 +308,24 @@ const MatchScreen = ({ tournamentId, matchId }) => {
                 <div className={stl.actions}>
                     <button type="button" onClick={() => updateScore(false)}>Update</button>
                     <button type="button" onClick={finalizeScore}>Final</button>
+                    {canDeclareOutcome && declarableOutcomes.map((o) => (
+                        <button key={o.type} type="button" onClick={() => openDeclareOutcome(o)}>
+                            {o.label}
+                        </button>
+                    ))}
                 </div>
             </form>
+            )}
+
+            <DeclareOutcomeDialog
+                open={Boolean(declaringOutcome)}
+                outcome={declaringOutcome}
+                onClose={() => setDeclaringOutcome(null)}
+                matchId={matchId}
+                tournamentId={tournamentId}
+                teams={[scoreData.team1, scoreData.team2].map(t => ({ team_id: t.team_id, label: teamLabel(t) }))}
+                onDeclared={handleOutcomeDeclared}
+            />
 
             {isModalOpen && (
                 <div className={stl.modal}>
@@ -276,23 +342,36 @@ const MatchScreen = ({ tournamentId, matchId }) => {
                 onClose={handleBackToMatches}
             >
                 <DialogTitle>
-                    {matchStatus === 'completed' ? 'Match Completed' : 'Match Not Started'}
+                    {decidedWithoutPlay ? `Match Decided: ${outcome.label}`
+                        : matchStatus === 'completed' ? 'Match Completed' : 'Match Not Started'}
                 </DialogTitle>
                 <DialogContent>
-                    {matchStatus === 'completed' ? (
+                    {decidedWithoutPlay ? (
+                        <p>
+                            {winnerTeam ? `${teamLabel(winnerTeam)} won by ${outcome.label.toLowerCase()}.` : ''}
+                            {' '}Scores cannot be entered for this match.
+                        </p>
+                    ) : matchStatus === 'completed' ? (
                         <p>This match has been completed. Would you like to override the scores?</p>
                     ) : (
-                        <p>This match hasn't started yet. Would you like to start the match?</p>
+                        <p>
+                            This match hasn't started yet. Would you like to start the match?
+                            {declarableOutcomes.length > 0 && ' If a team has not shown up, you can declare a walkover instead.'}
+                        </p>
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button 
+                    <Button
                         onClick={handleBackToMatches}
                         style={{ color: '#F28C28' }}
                     >
-                        Cancel
+                        {decidedWithoutPlay ? 'Back to Matches' : 'Cancel'}
                     </Button>
-                    {matchStatus === 'completed' ? (
+                    {decidedWithoutPlay ? (
+                        <Button onClick={() => setShowStatusModal(false)} style={{ color: '#4CAF50' }}>
+                            View Result
+                        </Button>
+                    ) : matchStatus === 'completed' ? (
                         <Button 
                             onClick={() => setShowStatusModal(false)}
                             style={{ color: '#4CAF50' }}
@@ -300,12 +379,19 @@ const MatchScreen = ({ tournamentId, matchId }) => {
                             Override Score
                         </Button>
                     ) : (
-                        <Button 
-                            onClick={handleStartMatch}
-                            style={{ color: '#4CAF50' }}
-                        >
-                            Start Match
-                        </Button>
+                        <>
+                            {declarableOutcomes.map((o) => (
+                                <Button key={o.type} onClick={() => openDeclareOutcome(o)} color="warning">
+                                    Declare {o.label}
+                                </Button>
+                            ))}
+                            <Button
+                                onClick={handleStartMatch}
+                                style={{ color: '#4CAF50' }}
+                            >
+                                Start Match
+                            </Button>
+                        </>
                     )}
                 </DialogActions>
             </Dialog>

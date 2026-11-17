@@ -56,6 +56,9 @@ export const endpoints = {
     assignCourt: baseurl + "/tournaments/{tournament_id}/court-assignments",
     reorderCourtMatches: baseurl + "/tournaments/{tournament_id}/court-assignments/reorder",
     updateMatchStatus: baseurl + "/update-match-status",
+    // Match outcomes (walkover, ...): list types, declare one on a match (/matches/{id}/outcome)
+    matchOutcomes: baseurl + "/match-outcomes",
+    matches: baseurl + "/matches",
     getMatch: '/api/matches/match',
     getCourtMatches: baseurl + "/tournaments/{tournament_id}/court-matches",
 

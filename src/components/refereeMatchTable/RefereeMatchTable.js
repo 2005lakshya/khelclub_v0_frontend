@@ -4,8 +4,13 @@ import { endpoints } from '@/store/urls';
 import stl from './RefereeMatchTable.module.scss';
 import toast from 'react-hot-toast';
 import { Dialog, DialogActions, DialogContent, DialogTitle, Button, TextField } from '@mui/material';
+import {
+  DeclareOutcomeDialog, OutcomeTag, hasSpecialOutcome, isDecidedWithoutPlay, useDeclarableOutcomes, winnerName
+} from '@/components/matchOutcome';
 
 const RefereeMatchTable = ({ tournamentId }) => {
+  const declarableOutcomes = useDeclarableOutcomes();
+  const [declaring, setDeclaring] = useState(null); // { match, outcome }
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingMatch, setEditingMatch] = useState(null);
@@ -137,6 +142,20 @@ const RefereeMatchTable = ({ tournamentId }) => {
     setEditingMatch(match);
   };
 
+  const handleOutcomeDeclared = (resp) => {
+    setMatches(prev => prev.map(m => m.match_id === resp.match_id ? {
+      ...m,
+      match_result: `${resp.team1_score}-${resp.team2_score}`,
+      match_status: {
+        ...m.match_status,
+        status: resp.status,
+        is_final: resp.is_final,
+        winner_team_id: resp.winner_team_id,
+        outcome: resp.outcome
+      }
+    } : m));
+  };
+
   const handleStartMatchClick = (match) => {
     setSelectedMatch(match);
     setModalType('start');
@@ -188,6 +207,8 @@ const RefereeMatchTable = ({ tournamentId }) => {
                         onChange={(e) => setScores({ ...scores, team2Score: Math.max(0, parseInt(e.target.value) || 0) })}
                       />
                     </div>
+                  ) : hasSpecialOutcome(match) ? (
+                    <><OutcomeTag match={match} /> {winnerName(match)} won</>
                   ) : (
                     match.match_result
                   )}
@@ -237,14 +258,25 @@ const RefereeMatchTable = ({ tournamentId }) => {
                       </button>
                     )
                   )}
-                  {match.match_status.status === 'completed' && (
-                    <button 
+                  {match.match_status.status === 'completed' && !isDecidedWithoutPlay(match) && (
+                    <button
                       onClick={() => handleEditClick(match)}
                       className={stl.editButton}
                     >
                       Override Score
                     </button>
                   )}
+                  {match.match_status.status !== 'completed' && !match.match_status.is_final &&
+                    declarableOutcomes.map((outcome) => (
+                      <button
+                        key={outcome.type}
+                        onClick={() => setDeclaring({ match, outcome })}
+                        className={stl.cancelButton}
+                        style={{ marginLeft: 6 }}
+                      >
+                        {outcome.label}
+                      </button>
+                    ))}
                 </td>
               </tr>
             ))}
@@ -298,6 +330,19 @@ const RefereeMatchTable = ({ tournamentId }) => {
           )}
         </DialogActions>
       </Dialog>
+
+      <DeclareOutcomeDialog
+        open={Boolean(declaring)}
+        outcome={declaring?.outcome}
+        onClose={() => setDeclaring(null)}
+        matchId={declaring?.match.match_id}
+        tournamentId={tournamentId}
+        teams={declaring ? [declaring.match.team1, declaring.match.team2].map(t => ({
+          team_id: t.team_id,
+          label: `${t.name} (${t === declaring.match.team1 ? declaring.match.team1_players : declaring.match.team2_players})`
+        })) : []}
+        onDeclared={handleOutcomeDeclared}
+      />
     </div>
   );
 };

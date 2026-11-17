@@ -3,6 +3,7 @@ import { apiCall } from '@/store/utils';
 import { endpoints } from '@/store/urls';
 import stl from './MatchTable.module.scss';
 import toast from 'react-hot-toast';
+import { OutcomeTag, hasSpecialOutcome, resultText, winnerName } from '@/components/matchOutcome';
 
 const MatchTable = ({ tournamentId }) => {
   const [matches, setMatches] = useState([]);
@@ -52,7 +53,7 @@ const MatchTable = ({ tournamentId }) => {
         match.pool || '-',
         match.team1_players,
         match.team2_players,
-        match.match_result,
+        resultText(match),
         match.match_status.status
       ]);
 
@@ -110,7 +111,11 @@ const MatchTable = ({ tournamentId }) => {
                 <td>{match.pool || '-'}</td>
                 <td>{match.team1_players}</td>
                 <td>{match.team2_players}</td>
-                <td>{match.match_result}</td>
+                <td>
+                  {hasSpecialOutcome(match) ? (
+                    <><OutcomeTag match={match} /> {winnerName(match)} won</>
+                  ) : match.match_result}
+                </td>
                 <td>
                   <span className={`${stl.status} ${stl[match.match_status.status]}`}>
                     {match.match_status.status}
