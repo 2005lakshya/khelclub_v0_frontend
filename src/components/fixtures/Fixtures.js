@@ -7,6 +7,7 @@ import { apiCall } from '@/store/utils';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import KnockoutBracket from './KnockoutBracket';
+import { OutcomeTag, displayScore } from '@/components/matchOutcome';
 
 
 const Fixtures = ({ 
@@ -308,7 +309,7 @@ const Fixtures = ({
                             {match.team1_id && (
                                 <div className={styles.teamId}>Team ID: {match.team1_id}</div>
                             )}
-                            <div className={styles.score}>{match.team1Score}</div>
+                            <div className={styles.score}>{displayScore(match, match.team1Score)}</div>
                         </div>
                         <div className={styles.vs}>vs</div>
                         <div className={`${styles.team} ${
@@ -318,7 +319,7 @@ const Fixtures = ({
                             {match.team2_id && (
                                 <div className={styles.teamId}>Team ID: {match.team2_id}</div>
                             )}
-                            <div className={styles.score}>{match.team2Score}</div>
+                            <div className={styles.score}>{displayScore(match, match.team2Score)}</div>
                         </div>
                     </div>
                     <div className={styles.matchInfo}>
@@ -369,7 +370,7 @@ const Fixtures = ({
                                         {match.team1_id && (
                                             <div className={styles.teamId}>Team ID: {match.team1_id}</div>
                                         )}
-                                        <div className={styles.score}>{match.team1Score}</div>
+                                        <div className={styles.score}>{displayScore(match, match.team1Score)}</div>
                                     </div>
                                     <div className={styles.vs}>vs</div>
                                     <div className={`${styles.team} ${
@@ -379,12 +380,13 @@ const Fixtures = ({
                                         {match.team2_id && (
                                             <div className={styles.teamId}>Team ID: {match.team2_id}</div>
                                         )}
-                                        <div className={styles.score}>{match.team2Score}</div>
+                                        <div className={styles.score}>{displayScore(match, match.team2Score)}</div>
                                     </div>
                                 </div>
                                 {match.status === 'completed' && (
                                     <div className={styles.status}>Completed</div>
                                 )}
+                                <OutcomeTag match={match} />
                             </div>
                         ))}
                     </div>

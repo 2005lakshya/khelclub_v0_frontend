@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { SingleEliminationBracket, Match, SVGViewer, createTheme } from '@g-loot/react-tournament-brackets';
+import { displayScore } from '@/components/matchOutcome';
 
 const theme = createTheme({
     textColor: { main: '#000000', highlighted: '#07090D', dark: '#3E414D' },
@@ -84,14 +85,14 @@ const KnockoutBracket = ({ matches }) => {
                 participants: [
                     {
                         id: match.team1?.team_id || 'TBD',
-                        resultText: match.match_result.split('-')[0] || null,
+                        resultText: displayScore(match, match.match_result.split('-')[0]) || null,
                         isWinner: match.match_status?.winner_team_id === match.team1?.team_id,
                         status: match.team1?.checked_in ? 'PLAYED' : null,
                         name: formatPlayerNames(match.team1_players)
                     },
                     {
                         id: match.team2?.team_id || 'TBD',
-                        resultText: match.match_result.split('-')[1] || null,
+                        resultText: displayScore(match, match.match_result.split('-')[1]) || null,
                         isWinner: match.match_status?.winner_team_id === match.team2?.team_id,
                         status: match.team2?.checked_in ? 'PLAYED' : null,
                         name: formatPlayerNames(match.team2_players)

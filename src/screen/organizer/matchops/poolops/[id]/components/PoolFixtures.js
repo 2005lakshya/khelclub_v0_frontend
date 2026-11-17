@@ -6,6 +6,7 @@ import { Button } from '@mui/material';
 import SportsTennisIcon from '@mui/icons-material/SportsTennis';
 import DeleteIcon from '@mui/icons-material/Delete';
 import stl from './PoolFixtures.module.scss';
+import { OutcomeTag, displayScore } from '@/components/matchOutcome';
 
 const PoolFixtures = ({ pool, tournamentId, onFixturesChange, isSingles }) => {
     const [fixtures, setFixtures] = useState(null);
@@ -135,6 +136,7 @@ const PoolFixtures = ({ pool, tournamentId, onFixturesChange, isSingles }) => {
                                         {match.status === 'completed' ? 'Completed' :
                                          match.status === 'in_progress' ? 'In Progress' : 'Pending'}
                                     </span>
+                                    <OutcomeTag match={match} />
                                 </div>
                                 <div className={stl.teams}>
                                     <div className={`${stl.team} ${match.winner_team_id === match.team1.team_id ? stl.winner : ''}`}>
@@ -143,7 +145,7 @@ const PoolFixtures = ({ pool, tournamentId, onFixturesChange, isSingles }) => {
                                             {isSingles ? match.team1.players[0] : match.team1.players.join(' & ')}
                                         </div>
                                         {match.scores && (
-                                            <div className={stl.score}>{match.scores.team1_score}</div>
+                                            <div className={stl.score}>{displayScore(match, match.scores.team1_score)}</div>
                                         )}
                                     </div>
                                     <div className={stl.vs}>vs</div>
@@ -153,7 +155,7 @@ const PoolFixtures = ({ pool, tournamentId, onFixturesChange, isSingles }) => {
                                             {isSingles ? match.team2.players[0] : match.team2.players.join(' & ')}
                                         </div>
                                         {match.scores && (
-                                            <div className={stl.score}>{match.scores.team2_score}</div>
+                                            <div className={stl.score}>{displayScore(match, match.scores.team2_score)}</div>
                                         )}
                                     </div>
                                 </div>

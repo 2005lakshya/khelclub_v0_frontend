@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Bracket, Seed, SeedItem, SeedTeam } from 'react-brackets';
+import { displayScore } from '@/components/matchOutcome';
 
 const CustomSeed = ({ seed, breakpoint }) => {
     return (
@@ -106,12 +107,12 @@ const KnockoutBracket2 = ({ matches }) => {
                 teams: [
                     {
                         name: formatPlayerNames(match.team1_players),
-                        score: scores[0],
+                        score: displayScore(match, scores[0]),
                         isWinner: match.match_status?.winner_team_id === match.team1?.team_id
                     },
                     {
                         name: formatPlayerNames(match.team2_players),
-                        score: scores[1],
+                        score: displayScore(match, scores[1]),
                         isWinner: match.match_status?.winner_team_id === match.team2?.team_id
                     }
                 ]
